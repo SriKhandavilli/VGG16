@@ -1,0 +1,111 @@
+# Import required libraries
+
+import tensorflow as tf
+from tensorflow.keras import datasets, layers, models
+import matplotlib.pyplot as plt
+
+#Download and preprocess the CIFAR-10 dataset
+
+#This is a dataset of 50,000 32x32 color training images and 10,000 test images, labeled over 10 categories.
+
+#We normalize training data, since we can make sure that the various features have similar value ranges so that gradient descents can converge faster.
+
+(train_images, train_labels), (test_images, test_labels) = datasets.cifar10.load_data()
+
+# Normalize pixel values to be between 0 and 1
+train_images, test_images = train_images / 255.0, test_images / 255.0
+
+Visualize some images in the dataset using matplotlib show.
+
+class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
+               'dog', 'frog', 'horse', 'ship', 'truck']
+
+plt.figure(figsize=(10,10))
+for i in range(25):
+    plt.subplot(5,5,i+1)
+    plt.xticks([])
+    plt.yticks([])
+    plt.grid(False)
+    plt.imshow(train_images[i])
+    # The CIFAR labels happen to be arrays, 
+    # which is why you need the extra index
+    plt.xlabel(class_names[train_labels[i][0]])
+plt.show()
+
+#Create your VGG16 model architecture.
+
+#VGG 16 has 16 layers that have weights and convolution layers of 3x3 filter with a stride 1 and always used same padding and 
+#maxpool layer of 2x2 filter of stride 2. In the end it has 3 FC(fully connected layers) followed by a softmax for output.
+
+# build your own VGG16 with tensorflow.keras
+model = models.Sequential()
+model.add(layers.Conv2D(64, (3, 3), activation='relu', input_shape=(32, 32, 3), padding = "same"))
+model.add(layers.Conv2D(64, (3, 3), activation='relu', padding = "same"))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(128, (3, 3), activation='relu', padding = "same"))
+model.add(layers.Conv2D(128, (3, 3), activation='relu', padding = "same"))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(256, (3, 3), activation='relu', padding = "same"))
+model.add(layers.Conv2D(256, (3, 3), activation='relu', padding = "same"))
+model.add(layers.Conv2D(256, (3, 3), activation='relu', padding = "same"))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(512, (3, 3), activation='relu', padding = "same"))
+model.add(layers.Conv2D(512, (3, 3), activation='relu', padding = "same"))
+model.add(layers.Conv2D(512, (3, 3), activation='relu', padding = "same"))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(512, (3, 3), activation='relu', padding = "same"))
+model.add(layers.Conv2D(512, (3, 3), activation='relu', padding = "same"))
+model.add(layers.Conv2D(512, (3, 3), activation='relu', padding = "same"))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Flatten())
+model.add(layers.Dense(4096, activation='relu'))
+model.add(layers.Dense(4096))
+model.add(layers.Dense(1000))
+model.add(layers.Dense(10, activation = 'softmax'))
+
+#Check the summary of the model
+
+model.summary()
+
+#Train the model
+
+#Here, we use SGD optimizer and cross entropy loss function.
+
+model.compile(optimizer='SGD',
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              metrics=['accuracy'])
+
+#Use model.fit() to pass data to the mode. 
+#Epoch is given 15 as the accuracy is above 60% only after epoch 10. 
+#After executing the model will start to train and you will start to see the training/validation accuracy and loss.
+
+history = model.fit(train_images, train_labels, epochs=15, 
+                    validation_data=(test_images, test_labels))
+                    
+#Visualize training/validation accuracy. All the training/validation accuracy are stored in history. So, visualize it from history
+
+import matplotlib.pyplot as plt
+plt.plot(history.history['accuracy'], label='accuracy')
+plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+plt.title("model accuracy")
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend(loc='lower right')
+plt.show()
+# Evaluate the model
+#test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
+
+#Visualize training/validation loss.
+
+plt.plot(history.history['loss'], label='loss')
+plt.plot(history.history['val_loss'], label = 'val_loss')
+plt.title("model loss")
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.ylim([0.5, 0.8])
+plt.legend(loc='lower right')
+plt.show()
+
+# Evaluate the model
+test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
+print(test_acc)
